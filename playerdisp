@@ -1,0 +1,83 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          playerdisp
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5 
+# Default-Stop:      0 1 6 
+# Short-Description: music player display
+### END INIT INFO
+
+case "$1" in
+  start)
+    echo "playerdisp >> Starting..."
+    # run application you want to start
+    python /home/volumio/show.py &
+    ;;
+  stop)
+    #echo "Stopping playerdisp"
+    # kill application you want to stop
+    PID=`ps -ef | grep show.py | grep -v grep | awk '{print $2}'`
+    if [ -z $PID ]; then
+      echo "playerdisp does not run."
+    else
+      echo "playerdisp >> Stopping..."
+      echo "stop" >> /tmp/displayorder
+      count=0
+      while true; do
+        PID1=`ps -ef | grep show.py | grep -v grep | awk '{print $2}'`
+        if [ -z $PID1 ]; then
+          echo "playerdisp >> Stop"
+          break
+        fi
+        if [ $count -gt 20 ]; then
+          echo "playerdisp >> No respone, kill process!"
+          kill "$PID"
+        fi
+        count=$((count+1))
+      done
+    fi
+    ;;
+  restart)
+    #echo "Stopping and restart playerdisp"
+    PID=`ps -ef | grep show.py | grep -v grep | awk '{print $2}'`
+    if [ -z $PID ]; then
+      echo "playerdisp does not run."
+    else
+      echo "playerdisp >> Stopping..."
+      echo "restart" >> /tmp/displayorder
+      count=0
+      while true; do
+        PID1=`ps -ef | grep show.py | grep -v grep | awk '{print $2}'`
+        if [ -z $PID1 ]; then
+          echo "playerdisp >> Stop"
+          break
+        fi
+        if [ $count -gt 20 ]; then
+          echo "playerdisp >> No respone, kill process!"
+          kill "$PID"
+        fi
+        count=$((count+1))
+      done
+    fi
+    sleep 1
+    echo "playerdisp >> Starting..."
+    python /home/volumio/show.py &
+    
+    ;;
+#  initdisplay)
+#    PID=`ps -ef | grep show.py | grep -v grep | awk '{print $2}'`
+#    if [ -z $PID ]; then
+#      echo "playerdisp does not run."
+#    else
+#      echo "playerdisp >> Re-initialize display..."
+#      echo "initdisplay" >> /tmp/displayorder
+#    fi
+#    ;;
+  *)
+    echo "Usage: /etc/init.d/playerdisp {start|stop|restart}"
+    exit 1
+    ;;
+esac
+
+exit 0
