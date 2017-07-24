@@ -1,4 +1,12 @@
-#!/usr/bin/python
+#!/usr/bin/python2
+# -------------------------------------------------------
+# File name  : CharDisplay.py
+# Version    : 1.1
+# Release    : 2017.07.23
+# Author     :
+# Description: The library of controlling character LCD
+#              via I2C protocol for Raspberry Pi.
+# -------------------------------------------------------
 import smbus
 from time import sleep
 import logging
@@ -77,7 +85,6 @@ Pin_D5 = 0x20  #Pin P5
 Pin_D6 = 0x40  #Pin P6
 Pin_D7 = 0x80  #Pin P7
 
-
 class I2C_DISP:
   __bus = smbus.SMBus(1)
 
@@ -93,15 +100,25 @@ class I2C_DISP:
   #OLED(I2C)  : 2
   __Disp_mode = 0
   
-  __backlightStsMask = 0x00 # LCM: backlight
+  # LCM: backlight
+  __backlightStsMask = 0x00
+  
+  DISP_Status=0
 
   ##==================##
   ##  Basic Function  ##
   ##==================##
   def __init__(self, address, disp=0):
-    self.__address  = address
-    self.__Disp_mode= disp
-    self.__bus.write_byte(self.__address,self.__backlightStsMask)
+    # I2C_DISP(address, dispMode)
+    if self.checkI2Cdevice(address)==1:
+      self.__address  = address
+      self.__Disp_mode= disp
+      self.__bus.write_byte(self.__address,self.__backlightStsMask)
+      self.DISP_Status=1
+
+  def __del__(self):
+    self.__address  = 0x00
+    self.DISP_Status=0
 
   def sendCommand(self, command):
     if self.__Disp_mode == 2:
@@ -148,6 +165,25 @@ class I2C_DISP:
       self.__backlightStsMask=0x00
     self.__bus.write_byte(self.__address,self.__backlightStsMask)
 
+  def checkI2Cdevice(self, addr):
+    # ** Method 1: Use smbus function "read byte"
+    try:
+      result=self.__bus.read_byte(addr)
+	  #print "Read I2C device 0x{:02X}: 0x{:02X}".format(addr, result)
+      return 1
+    except:
+      #print "The I2C device 0x{:02X} do not respond!".format(addr)
+      return 0
+    # ** Method 2: Use command "gpio i2cdetect" via subprocess
+    #i=int((addr&0xF0)>>4)+1
+    #j=int(addr&0x0F)+1
+    #_tmp=subprocess.check_output(["gpio", "i2cd"]).split('\n')[i].split()[j]
+    #if _tmp=="--":
+    #  #print "The I2C device(0x{:2x}) not found.".format(addr)
+    #  return 0
+    #else:
+    #  return 1
+
 #================
 #  Display
 #================
@@ -162,35 +198,49 @@ class DISPLAY(I2C_DISP):
 #  __extenddisplayfunction = 0x00
 #  __displayfunctionRE     = 0x00
   
+  # Setting of display unit
   __cols=20
   __rows=4
   __row_offsets = [0x00, 0x40, 0x14, 0x54]
   __disp_mode=0
   __cgram_num=0
   def __init__(self, address=0x00, cols=20, rows=4, disp=0, cgram=[None]):
+    # DISPLAY(address, cols, rows, dispMode)
+    # DISPLAY(address, cols, rows, dispMode,font_CGRAM)
+    # ** address : 0x20~0x27=PCF8574T, 0x38~0x3F=PCF8574AT, 0x3C~0x3D=SSD1311(OLED)
+    # ** dispMode: 0=LCM(4bits), 1=OLED(4bits), 2=OLED(I2C)
+    #    [Usage]   PCF8574T LCD 20x04 | DISP=DISPLAY(0x27,20,4,0,font_CGRAM)
+    #              PCF8574T OLED 20x04| DISP=DISPLAY(0x27,20,4,1,font_CGRAM)
+    #              I2C OLED 20x04     | DISP=DISPLAY(0x3C,20,4,2,font_CGRAM)
+    # ** font_CGRAM: 8 bytes per 1 word.
     self.__cols     = cols
     self.__rows     = rows
     self.__disp_mode= disp
 
     self.begin_debuginfo()
     if address!=0x00:
-      if self.__disp_mode==0:
-        if (address>=0x20 and address<=0x27) or (address>=0x38 and address<=0x3F):
-          self.Disp_Device=I2C_DISP(address, 0)
-          self.begin_lcd()
-          self.logger.info('Display(4bit-LCD) ready...')
-      elif self.__disp_mode==1:
-        if (address>=0x20 and address<=0x27) or (address>=0x38 and address<=0x3F):
-          self.Disp_Device=I2C_DISP(address, 1)
+      if ((address>=0x20 and address<=0x27) or (address>=0x38 and address<=0x3F)) and (self.__disp_mode==0 or self.__disp_mode==1):
+        self.Disp_Device=I2C_DISP(address, self.__disp_mode)
+        if self.Disp_Device.DISP_Status==1:
+          if self.__disp_mode==0:
+            self.begin_lcd()
+            self.logger.info('Display(4bit-LCD) \033[33mready\033[0m...')
+          elif self.__disp_mode==1:
+            self.begin_oled()
+            self.logger.info('Display(4bit-OLED) \033[33mready\033[0m...')
+        else:
+          self.logger.error('Construct display \031[1mfailed\033[0m: \033[36mI2C address\033[0m error.')
+          return None
+      elif (address==0x3C or address==0x3D) and self.__disp_mode==2:
+        self.Disp_Device=I2C_DISP(address, 2)
+        if self.Disp_Device.DISP_Status==1:
           self.begin_oled()
-          self.logger.info('Display(4bit-OLED) ready...')
-      elif self.__disp_mode==2:
-        if address==0x3C or address==0x3D:
-          self.Disp_Device=I2C_DISP(address, 2)
-          self.begin_oled()
-          self.logger.info('Display(I2C-OLED) ready...')
+          self.logger.info('Display(I2C-OLED) \033[33mready\033[0m...')
+        else:
+          self.logger.error('Construct display \033[31mfailed\033[0m: \033[36mI2C address\033[0m error.')
+          return None
       else:
-        self.logger.error('Invalid display type!')
+        self.logger.error('\033[31mInvalid\033[0m display type!')
         return None
 
       if len(cgram)>=8:
@@ -214,7 +264,7 @@ class DISPLAY(I2C_DISP):
       self.__displaycontrol    = (LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF)
       self.__displaymode       = (LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT)
     else:
-      self.logger.error('Invalid I2C address!')
+      self.logger.error('\033[31mInvalid\033[0m I2C address!')
 
   def initDisp(self, cgram=[None]):
     if self.__disp_mode==0:
@@ -253,7 +303,7 @@ class DISPLAY(I2C_DISP):
       self.Disp_Device.sendCommand(0x06)
       sleep(0.01)
       self.Disp_Device.sendCommand(0x0C)
-# The following is for SSD1311
+# The following is advanced setting for SSD1311
 #      self.Disp_Device.sendCommand(0x2A)      # ***** Set "RE"=1, "IS"=0  00101010B
 #      self.Disp_Device.sendCommand(0x71)      # [010] Function Selection A  [71h] (IS = X, RE = 1, SD=0), 2bajty
 #      self.Disp_Device.sendData(0x5C)         # [010] 0x5C set Vdd
@@ -311,12 +361,12 @@ class DISPLAY(I2C_DISP):
   def begin_debuginfo(self):
     self.logger = logging.getLogger('displaylog')
     self.hdlr = logging.FileHandler('/tmp/display.log')
-    self.formatter = logging.Formatter('%(asctime)s | [%(levelname)s] %(message)s','%Y/%m/%d %H:%M:%S')
+    self.formatter = logging.Formatter('%(asctime)s | [\033[1m%(levelname)s\033[0m] %(message)s','%Y/%m/%d %H:%M:%S',)
     self.hdlr.setFormatter(self.formatter)
 
     self.logger.addHandler(self.hdlr) 
     self.logger.setLevel(logging.DEBUG)
-    self.logger.info('-- Start to store display controlled message --')
+    self.logger.info('-- \033[32mStart to store display controlled message\033[0m --')
 
   def sendDebugInfo(self, arg, level=1):
     # sendDebugInfo(string, level)
@@ -345,7 +395,7 @@ class DISPLAY(I2C_DISP):
     # clear display, set cursor position to zero
     self.Disp_Device.sendCommand(LCD_CLEARDISPLAY)
     sleep(0.002)
-    self.logger.info('Control: Clear')
+    self.logger.info('\033[35mControl\033[0m: Clear')
 
   def home(self):
     # set cursor position to zero
@@ -382,14 +432,14 @@ class DISPLAY(I2C_DISP):
     self.__displaycontrol |= LCD_DISPLAYON
     self.Disp_Device.sendCommand(LCD_DISPLAYCONTROL | self.__displaycontrol)
     #sendCommand(0x0C)			# **** Turn on
-    self.logger.info('Control: Turn display on')
+    self.logger.info('\033[35mControl\033[0m: Turn display \033[32mon\033[0m')
 
   #Turn off Display
   def noDisplay(self):
     self.__displaycontrol &= ~LCD_DISPLAYON
     self.Disp_Device.sendCommand(LCD_DISPLAYCONTROL | self.__displaycontrol)
     #sendCommand(0x08)			# **** Turn Off
-    self.logger.info('Control: Turn display off')
+    self.logger.info('\033[35mControl\033[0m: Turn display \033[31moff\033[0m')
 
   def on(self):
     self.display()
@@ -403,12 +453,12 @@ class DISPLAY(I2C_DISP):
   def backlight(self):
     if self.__disp_mode!=1 and self.__disp_mode!=2:
       self.Disp_Device.setBacklight(1)
-      self.logger.info('Control: Light backlight on')
+      self.logger.info('\033[35mControl\033[0m: Light backlight \033[32mon\033[0m')
   #Turn off Backlight(No need for OLED module)
   def noBacklight(self):
     if self.__disp_mode!=1 and self.__disp_mode!=2:
       self.Disp_Device.setBacklight(0)
-      self.logger.info('Control: Light backlight off')
+      self.logger.info('\033[35mControl\033[0m: Light backlight \033[31moff\033[0m')
 
   ##==========================##
   ##  Display Tools Function  ##
@@ -418,26 +468,27 @@ class DISPLAY(I2C_DISP):
   def cursor(self):
     self.__displaycontrol |= LCD_CURSORON
     self.Disp_Device.sendCommand(LCD_DISPLAYCONTROL | self.__displaycontrol)
-    self.logger.info('Control: Turn cursor on')
+    self.logger.info('\033[35mControl\033[0m: Turn cursor on')
   #Don't Display Cursor
   def noCursor(self):
     self.__displaycontrol &= ~LCD_CURSORON
     self.Disp_Device.sendCommand(LCD_DISPLAYCONTROL | self.__displaycontrol)
-    self.logger.info('Control: Turn cursor off')
+    self.logger.info('\033[35mControl\033[0m: Turn cursor off')
   #Display Invert Cursor
   def blink(self):
     self.__displaycontrol |= LCD_BLINKON
     self.Disp_Device.sendCommand(LCD_DISPLAYCONTROL | self.__displaycontrol)
-    self.logger.info('Control: Turn invert cursor on')
+    self.logger.info('\033[35mControl\033[0m: Turn invert cursor on')
   #Don't Display Invert Cursor
   def noBlink(self):
     self.__displaycontrol &= ~LCD_BLINKON
     self.Disp_Device.sendCommand(LCD_DISPLAYCONTROL | self.__displaycontrol)
-    self.logger.info('Control: Turn invert cursor off')
+    self.logger.info('\033[35mControl\033[0m: Turn invert cursor off')
 
   ##===================================##
   ##  Display(SSD1311) Tools Function  ##
   ##===================================##
+# The following is advanced function of SSD1311
 #Set entension register (RE) bit
 #  def setRE(self):
 #    self.__displayfunction |= LCD_EXTENSIONREGISTERON

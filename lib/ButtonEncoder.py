@@ -1,12 +1,12 @@
 #!/usr/bin/python2
-####################################
-# File name  : ButtonEncoder.py      
-# Description: The button switch or incremental encoder
-#              library for Raspberry Pi.
-# Author     : 
-# Date       : 2017.07.22
-# Version    : 1.1                    
-####################################
+# -------------------------------------------------------
+# File name  : ButtonEncoder.py
+# Version    : 1.1
+# Release    : 2017.07.22
+# Author     :
+# Description: The library of button switch or incremental
+#               encoder for Raspberry Pi.
+# -------------------------------------------------------
 import time
 import RPi.GPIO as GPIO
 #sudo apt-get install rpi.gpio
