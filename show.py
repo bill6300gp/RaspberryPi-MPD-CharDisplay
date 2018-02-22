@@ -375,7 +375,10 @@ def restartAirPlay():
 def checkI2Cdevice(addr):
   i=int((addr&0xF0)>>4)+1
   j=int(addr&0x0F)+1
-  _tmp=subprocess.check_output(["gpio", "i2cd"]).split('\n')[i].split()[j]
+  try:
+    _tmp=subprocess.check_output(["gpio", "i2cd"]).split('\n')[i].split()[j]
+  except:
+    _tmp=subprocess.check_output(["i2cdetect", "-y", "1"]).split('\n')[i].split()[j]
   if _tmp=="--":
     print "The I2C device(0x{:2x}) not found.".format(addr)
     return 0
