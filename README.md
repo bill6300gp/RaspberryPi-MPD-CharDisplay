@@ -24,18 +24,23 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 0. Copy and upload the files to /home/volumio/ or other folder
 
 1. Edit 'playerdisp': check absolute path of show.py
+
    find `python /home/volumio/show.py &` and update it, and there are 2 locations have to update.
    
 2. Let the setup.sh executable
+
    `sudo chmod 755 setup.sh`
    
 3. Let main script will be run when system startup
+
    `./setup.sh`
    
    *Note: The show.py will run automatically when finishing the setup.sh.*
    
 ### For RuneAudio
+
 'setup.sh' isn't valid for RuneAudio, but show.py can be run via systemctl method.
+
 *To be continued...*
 
 
