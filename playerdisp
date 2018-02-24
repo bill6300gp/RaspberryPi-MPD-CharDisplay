@@ -12,7 +12,7 @@ case "$1" in
   start)
     echo "playerdisp >> Starting..."
     # run application you want to start
-    python /home/volumio/show.py &
+    python {absolute_path}/show.py &
     ;;
   stop)
     #echo "Stopping playerdisp"
@@ -62,7 +62,7 @@ case "$1" in
     fi
     sleep 1
     echo "playerdisp >> Starting..."
-    python /home/volumio/show.py &
+    python {absolute_path}/show.py &
     
     ;;
 #  initdisplay)
