@@ -63,19 +63,25 @@ def getIpAddress():
 
   _tmp=Player_ip
   try:
+    ifname='eth0'
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     Player_ip=socket.inet_ntoa(fcntl.ioctl(
       s.fileno(),
       0x8915,
       struct.pack('256s', ifname[:15])
     )[20:24])
-#    for i in range(0,len(_tmp),1):
-#      if Player_ip[i]!=int(_tmp[i]):
-#        Player_ip[i]=int(_tmp[i])
-#        count=count+1
   except:
-    Player_ip="0.0.0.0"
-    Player_error|=0x01
+    try:
+      ifname='wlan0'
+      s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      Player_ip=socket.inet_ntoa(fcntl.ioctl(
+        s.fileno(),
+        0x8915,
+        struct.pack('256s', ifname[:15])
+      )[20:24])
+    except:
+      Player_ip="0.0.0.0"
+      Player_error|=0x01
 
   if len(Player_ip)!=len(_tmp) or Player_ip!=_tmp:
     Display_update|=0x02
@@ -387,14 +393,8 @@ def restartAirPlay():
 def checkI2Cdevice(addr):
   i=int((addr&0xF0)>>4)+1
   j=int(addr&0x0F)+1
-<<<<<<< HEAD
+  
   _tmp=subprocess.check_output(["i2cdetect", "-y", "1"]).split('\n')[i].split()[j]
-=======
-  try:
-    _tmp=subprocess.check_output(["gpio", "i2cd"]).split('\n')[i].split()[j]
-  except:
-    _tmp=subprocess.check_output(["i2cdetect", "-y", "1"]).split('\n')[i].split()[j]
->>>>>>> 2e95d690b38a3063521881b1f7bd8324fbe26f89
   if _tmp=="--":
     print "The I2C device(0x{:2x}) not found.".format(addr)
     return 0
@@ -745,7 +745,7 @@ if __name__ == '__main__':
       if Order_shutdown==1:
         DISP.clear()
         DISP.sendString(' System shut down!! ',0,0)
-        sleep(1.5)
+        sleep(0.2)
       DISP.clear()
       DISP.off()
       DISP.sendDebugInfo('Player displayer stop!',2)
