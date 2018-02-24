@@ -1,3 +1,4 @@
+
 # RaspberryPi-MPD-CharDisplay
 
 A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 controller) module via I2C protocol with button events. It can be used to display hostname, IP address, and some MPD infomation.
@@ -16,7 +17,29 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
    </br>
    **Python2 library requirements:** smbus, RPi.GPIO
 
-### Installation
+## Installation
+
+### For Volumio2
+
+0. Copy and upload the files to /home/volumio/ or other folder
+
+1. Edit 'playerdisp': check absolute path of show.py
+
+   find `python /home/volumio/show.py &` and update it, and there are 2 locations have to update.
+   
+2. Let the setup.sh executable
+
+   `sudo chmod 755 setup.sh`
+   
+3. Let main script will be run when system startup
+
+   `./setup.sh`
+   
+   *Note: The show.py will run automatically when finishing the setup.sh.*
+   
+### For RuneAudio
+
+'setup.sh' isn't valid for RuneAudio, but show.py can be run via systemctl method.
 
 *To be continued...*
 
@@ -31,7 +54,9 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
 0. Compatibility test for following code
 
-   [Version 2.129 (25-03-2017)](https://volumio.org/get-started/ "Volumio >> Download") - OK
+   [Version 2.368 (18-02-2018)](https://volumio.org/get-started/ "Volumio >> Download") - OK
+   </br>
+   Version 2.129 (07-03-2017) - OK
    </br>
    Version 2.118 (07-03-2017) - OK
    </br>
@@ -79,11 +104,11 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
 3. Install 'smbus' module
 
-   - edit '/boot/config.txt': find following script and remove **#** mark
+   - Edit '/boot/config.txt': find following script and remove **#** mark
 
       `#...param=i2c_arm=on`
 
-   - edit '/boot/cmdline.txt': add following script in the end
+   - Edit '/boot/cmdline.txt': add following script in the end
    
       `bcm2708.vc_i2c_override=1`
    
