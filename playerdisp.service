@@ -1,0 +1,18 @@
+# Systemctl File: /usr/lib/systemd/system/playerdisp.service
+# Script File   : /etc/init.d/playerdisp
+# install  : [copy file]; systemctl daemon-reload; systemctl enable playerdisp; systemctl start playerdisp
+# uninstall: systemctl stop playerdisp; systemctl disable playerdisp; [remove file]; systemctl daemon-reload; systemctl reset-failed
+
+[Unit]
+Description=Character Displayer Controller for Music Player
+After=mpd.service
+#After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart={absolute_path}/playerdisp start
+ExecStop={absolute_path}/playerdisp stop
+
+[Install]
+WantedBy=multi-user.target
