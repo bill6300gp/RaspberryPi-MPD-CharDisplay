@@ -173,7 +173,7 @@ def getAirPlayState():
     return 0
 
   if _tmp.find("shairport")>=0:
-    Player_stat=5
+    Player_stat=7
     _stat=_tmp.split('\n')
     for i in range(2,len(_stat),1):
       if _stat[i].find("shairport")>=0:
@@ -220,8 +220,10 @@ def getMPDState():
     Display_update=Display_update|0x10
   if old_length!=Audio_length[0]*60+Audio_length[1]:
     Display_update=Display_update|0x20
-  if (Audio_length[0]*60+Audio_length[1])==0:
+  if _stat.split('\n')[0].find("source=youtube")>=0:
     Player_stat=Player_stat+2
+  elif (Audio_length[0]*60+Audio_length[1])==0:
+    Player_stat=Player_stat+4
     Audio_radioname=_stat.split('\n')[0].split(': ')[0]
     if len(old_radioname)!=len(Audio_radioname) or old_radioname!=Audio_radioname:
       Display_update=Display_update|0x40
@@ -279,7 +281,8 @@ def getState():
     getMPDState()
 
   getAudioSample()
-  if Player_stat==1 or Player_stat==3 or Player_stat==5:
+  #if Player_stat==1 or Player_stat==3 or Player_stat==5 or Player_stat==7:
+  if Player_stat%2==1:
     Standby_count=0
   else:
     if ENABLE_SLEEP==True:
@@ -298,12 +301,19 @@ def getState():
 #      print "Paused | Playlist: {:d}:{:02d}".format(Audio_length[0],Audio_length[1])
     elif Player_stat==3:
       if old_stat!=4:
+        DISP.sendDebugInfo('Player status: playing YouTube Stream',1)
+#      print "Playing | YouTubr"
+    elif Player_stat==4:
+        DISP.sendDebugInfo('Player status: paused YouTube Stream',1)
+#      print "Paused | YouTube"
+    elif Player_stat==5:
+      if old_stat!=6:
         DISP.sendDebugInfo('Player status: playing Web Radio',1)
 #      print "Playing | Web Radio: "+Audio_radioname
-    elif Player_stat==4:
+    elif Player_stat==6:
         DISP.sendDebugInfo('Player status: paused Web Radio',1)
 #      print "Paused | Web Radio: "+Audio_radioname
-    elif Player_stat==5:
+    elif Player_stat==7:
       DISP.sendDebugInfo('Player status: AirPlay('+Audio_airplayip+')',1)
 #      print "AirPlay: "+Audio_airplayip
     else:
@@ -375,7 +385,7 @@ def restartAirPlay():
 def checkI2Cdevice(addr):
   i=int((addr&0xF0)>>4)+1
   j=int(addr&0x0F)+1
-  _tmp=subprocess.check_output(["gpio", "i2cd"]).split('\n')[i].split()[j]
+  _tmp=subprocess.check_output(["i2cdetect", "-y", "1"]).split('\n')[i].split()[j]
   if _tmp=="--":
     print "The I2C device(0x{:2x}) not found.".format(addr)
     return 0
@@ -415,37 +425,33 @@ def updateDisplay():
         Display_title=1
     if Display_update&0x04==0x04:
       DISP.printCGRam(FONT_MUSIC1,13,0)
-      if Player_stat==1:
-        DISP.sendString("Playlist",0,1)
-        DISP.printCGRam(FONT_PLAY,8,1)
+      if Player_stat>=1 and Player_stat<=4:
+        if Player_stat==1 or Player_stat==2:
+          DISP.sendString("Playlist",0,1)
+        elif Player_stat==3 or Player_stat==4:
+          DISP.sendString("YouTube ",0,1)
+
+        if Player_stat%2==1:
+          DISP.printCGRam(FONT_PLAY,8,1)
+        else:
+          DISP.printCGRam(FONT_PAUSE,8,1)
+
         if Audio_length[0]<10:
           DISP.sendString(" {:d}:{:02d}/{:d}:{:02d} ".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]))
         elif Audio_length[0]<100:
           DISP.sendString("{:02d}:{:02d}/{:02d}:{:02d}".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]))
-      elif Player_stat==2:
-        DISP.sendString("Playlist",0,1)
-        DISP.printCGRam(FONT_PAUSE,8,1)
-        if Audio_length[0]<10:
-          DISP.sendString(" {:d}:{:02d}/{:d}:{:02d} ".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]))
-        elif Audio_length[0]<100:
-          DISP.sendString("{:02d}:{:02d}/{:02d}:{:02d}".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]))
-      elif Player_stat==3:
+      elif Player_stat==5 or Player_stat==6:
         DISP.sendString("WebRadio",0,1)
-        DISP.printCGRam(FONT_PLAY,8,1)
+        if Player_stat%2==1:
+          DISP.printCGRam(FONT_PLAY,8,1)
+        else:
+          DISP.printCGRam(FONT_PAUSE,8,1)
         if len(Audio_radioname)<=11:
           DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname,space=' ',align='^',width=11),9,1)
         else:
           DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:11],space=' ',align='<',width=11),9,1)
         Display_shift2=0
-      elif Player_stat==4:
-        DISP.sendString("WebRadio",0,1)
-        DISP.printCGRam(FONT_PAUSE,8,1)
-        if len(Audio_radioname)<=11:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname,space=' ',align='^',width=11),9,1)
-        else:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:11],space=' ',align='<',width=11),9,1)
-        Display_shift2=0
-      elif Player_stat==5:
+      elif Player_stat==7:
         DISP.sendString("AirPlay",0,1)
         DISP.printCGRam(FONT_AIRPLAY,7,1)
         DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[0:10],space=' ',align='<',width=10),10,1)
@@ -468,17 +474,17 @@ def updateDisplay():
           DISP.sendString("{:5.1f}K".format(float(Audio_sample)/1000),14,0)
         else:
           DISP.sendString("Closed",14,0)
-      if Display_update&0x10==0x10 and (Player_stat==1 or Player_stat==2):
+      if Display_update&0x10==0x10 and (Player_stat>=1 and Player_stat<=4):
         DISP.sendString("{:2d}:{:02d}".format(Audio_time[0],Audio_time[1]),9,1)
-      if Display_update&0x20==0x20 and (Player_stat==1 or Player_stat==2):
+      if Display_update&0x20==0x20 and (Player_stat>=1 and Player_stat<=4):
         DISP.sendString("{:d}:{:02d}".format(Audio_length[0],Audio_length[1]),15,1)
-      if Display_update&0x40==0x40 and (Player_stat==3 or Player_stat==4):
+      if Display_update&0x40==0x40 and (Player_stat==5 or Player_stat==6):
         if len(Audio_radioname)<=11:
           DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname,space=' ',align='^',width=11),9,1)
         else:
           DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:11],space=' ',align='<',width=11),9,1)
         Display_shift2=0
-      if Display_update&0x80==0x80 and Player_stat==5:
+      if Display_update&0x80==0x80 and Player_stat==7:
         DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[0:10],space=' ',align='<',width=10),10,1)
         Display_shift2=0
 
@@ -509,7 +515,7 @@ def shiftDisplay():
       DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[Display_shift1+0:Display_shift1+13],space=' ',align='<',width=13),0,0)
 
 
-  if Player_stat==3 or Player_stat==4:
+  if Player_stat==5 or Player_stat==6:
     if Display_shift2>=len(Audio_radioname)+9:
       Display_shift2=0
     else:
@@ -518,7 +524,7 @@ def shiftDisplay():
       DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:Display_shift2-len(Audio_radioname)+1],space=' ',align='>',width=11),9,1)
     else:
       DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[Display_shift2+0:Display_shift2+11],space=' ',align='<',width=11),9,1)
-  elif Player_stat==5:
+  elif Player_stat==7:
     if Display_shift2>=len(Audio_airplayip)+8:
       Display_shift2=0
     else:
@@ -632,7 +638,7 @@ def main():
           DISP.off()
           Display_stat=0
         else:
-          if count_shift>=5 and ((Display_title==0 and len(Player_name)>13) or (Display_title==1 and len(Player_ip)>13) or ((Player_stat==3 or Player_stat==4) and len(Audio_radioname)>11) or Player_stat==5 or (Player_stat==0 and len(Player_ip)>11)):
+          if count_shift>=5 and ((Display_title==0 and len(Player_name)>13) or (Display_title==1 and len(Player_ip)>13) or ((Player_stat==5 or Player_stat==6) and len(Audio_radioname)>11) or Player_stat==7 or (Player_stat==0 and len(Player_ip)>11)):
             shiftDisplay()
             count_shift=0
     elif Display_stat==2:
