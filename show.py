@@ -1,5 +1,8 @@
 #!/usr/bin/python
 import subprocess
+import socket
+import fcntl
+import struct
 from time import sleep
 from lib.Display import DISPLAY
 from lib.ButtonEncoder import ButtonEncoder
@@ -58,19 +61,18 @@ def getIpAddress():
   global Player_ip
   global Player_error
 
-#  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#  _tmp=socket.inet_ntoa(fcntl.ioctl(
-#    s.fileno(),
-#    0x8915,
-#    struct.pack('256s', ifname[:15])
-#  )[20:24]).split('.')
-#  for i in range(0,len(_tmp),1):
-#    if Player_ip[i]!=int(_tmp[i]):
-#      Player_ip[i]=int(_tmp[i])
-#      count=count+1
   _tmp=Player_ip
   try:
-    Player_ip=subprocess.check_output(["hostname", "-I"]).split('\n')[0].split()[0]
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    Player_ip=socket.inet_ntoa(fcntl.ioctl(
+      s.fileno(),
+      0x8915,
+      struct.pack('256s', ifname[:15])
+    )[20:24])
+#    for i in range(0,len(_tmp),1):
+#      if Player_ip[i]!=int(_tmp[i]):
+#        Player_ip[i]=int(_tmp[i])
+#        count=count+1
   except:
     Player_ip="0.0.0.0"
     Player_error|=0x01
@@ -385,7 +387,14 @@ def restartAirPlay():
 def checkI2Cdevice(addr):
   i=int((addr&0xF0)>>4)+1
   j=int(addr&0x0F)+1
+<<<<<<< HEAD
   _tmp=subprocess.check_output(["i2cdetect", "-y", "1"]).split('\n')[i].split()[j]
+=======
+  try:
+    _tmp=subprocess.check_output(["gpio", "i2cd"]).split('\n')[i].split()[j]
+  except:
+    _tmp=subprocess.check_output(["i2cdetect", "-y", "1"]).split('\n')[i].split()[j]
+>>>>>>> 2e95d690b38a3063521881b1f7bd8324fbe26f89
   if _tmp=="--":
     print "The I2C device(0x{:2x}) not found.".format(addr)
     return 0
