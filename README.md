@@ -19,32 +19,53 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
 ## Installation
 
+0. Install essential Python2 libraries(see Appendix-1).
+
 ### For Volumio2
 
-0. Copy and upload the files to /home/volumio/ or other folder
+1. Copy and upload the files to /home/volumio/ or other folder
 
-1. Edit 'playerdisp': check absolute path of show.py
+2. Edit 'playerdisp' file path(if necessary): check absolute path of show.py
 
-   find `python /home/volumio/show.py &` and update it, and there are 2 locations have to update.
+   find `{absolute_path}/show.py &` and modify it, and there are 2 locations have to modify.
+
+   *Note: The '{absolute_path}' will be modified by runing setup.sh automatically. But you can also modify manually.
    
-2. Let the setup.sh executable
+3. Let the setup.sh executable
 
    `sudo chmod 755 setup.sh`
    
-3. Let main script will be run when system startup
+4. Let main script will be run when system startup
 
    `./setup.sh`
    
-   *Note: The show.py will run automatically when finishing the setup.sh.*
+   *Note: If the essential Python2 libraries are OK, the script will run automatically when finishing the setup.sh.
    
 ### For RuneAudio
 
-'setup.sh' isn't valid for RuneAudio, but show.py can be run via systemctl method.
+1. Copy and upload the files to /root/ or other folder
 
-*To be continued...*
+2. Edit 'playerdisp' and 'playerdisp.service' file path(if necessary)
 
+   - Edit 'playerdisp': check absolute path of show.py
 
+      find `{absolute_path}/show.py &` and modify it, and there are 2 locations have to modify.
 
+   - Edit 'playerdisp.service': check absolute path of playerdisp
+
+      find `{absolute_path}/playerdisp` and modify it, and there are 2 locations have to modify.
+
+   *Note: The '{absolute_path}' will be modified by runing setup.sh automatically. But you can also modify manually.
+   
+3. Let the setup.sh executable
+
+   `chmod 755 setup.sh`
+   
+4. Let main script will be run when system startup
+
+   `./setup.sh`
+   
+   *Note:If the essential Python2 libraries are OK, the script will run automatically when finishing the setup.sh.
 
 ---
 
