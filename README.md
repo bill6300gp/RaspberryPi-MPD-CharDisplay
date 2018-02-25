@@ -27,9 +27,11 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
 2. Edit 'playerdisp' file path(if necessary): check absolute path of show.py
 
-   find `{absolute_path}/show.py &` and modify it, and there are 2 locations have to modify.
+   find and modify it, and there are 2 locations have to modify.
+ 
+      `{absolute_path}/show.py &`
 
-   *Note: The '{absolute_path}' will be modified by runing setup.sh automatically. But you can also modify manually.
+      *Note: The '{absolute_path}' will be modified by runing setup.sh automatically. But you can also modify manually.
    
 3. Let the setup.sh executable
 
@@ -49,13 +51,17 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
    - Edit 'playerdisp': check absolute path of show.py
 
-      find `{absolute_path}/show.py &` and modify it, and there are 2 locations have to modify.
+      find and modify it, and there are 2 locations have to modify.
+
+         `{absolute_path}/show.py &`
 
    - Edit 'playerdisp.service': check absolute path of playerdisp
 
-      find `{absolute_path}/playerdisp` and modify it, and there are 2 locations have to modify.
+      find and modify it, and there are 2 locations have to modify.
 
-   *Note: The '{absolute_path}' will be modified by runing setup.sh automatically. But you can also modify manually.
+         `{absolute_path}/playerdisp`
+
+         *Note: The '{absolute_path}' will be modified by runing setup.sh automatically. But you can also modify manually.
    
 3. Let the setup.sh executable
 
@@ -65,7 +71,7 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
    `./setup.sh`
    
-   *Note:If the essential Python2 libraries are OK, the script will run automatically when finishing the setup.sh.
+   *Note: If the essential Python2 libraries are OK, the script will run automatically when finishing the setup.sh.
 
 ---
 
