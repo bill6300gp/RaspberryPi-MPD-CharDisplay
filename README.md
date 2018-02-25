@@ -19,7 +19,13 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
 ## Installation
 
-0. Install essential Python2 libraries(see Appendix-1).
+1. Install essential Python2 libraries(see Appendix-1).
+
+2. Check I2C Character module LCD address
+
+   Open 'show.py' and go to Line-34
+
+      `Display_addr  =0x27`
 
 ### For Volumio2
 
@@ -51,7 +57,7 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
    - Edit 'playerdisp': check absolute path of show.py
 
-      find and modify it, and there are 2 locations have to modify.
+      find and modify it, and there are 2 locations have to modify.
 
          `{absolute_path}/show.py &`
 

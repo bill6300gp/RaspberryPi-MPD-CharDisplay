@@ -31,6 +31,7 @@ ENABLE_ENCODER=False
 
 Pin_POWERSW   =4
 
+Display_addr  =0x27
 Display_stat  =0
 Display_title =0
 Display_update=0x00
@@ -726,11 +727,11 @@ if __name__ == '__main__':
 #DISP=DISPLAY(0x27,20,4,1,font_CGRAM)
 # I2C OLED 20x04
 #DISP=DISPLAY(0x3C,20,4,2,font_CGRAM)
-    if checkI2Cdevice(0x27)==1:
+    if checkI2Cdevice(Display_addr)==1:
       if subprocess.check_output(["ls", "/tmp/"]).count("display.log")>0:
-        DISP=DISPLAY(0x27,20,2,0,font_CGRAM)
+        DISP=DISPLAY(Display_addr,20,2,0,font_CGRAM)
       else:
-        DISP=DISPLAY(0x27,20,2,0,font_CGRAM)
+        DISP=DISPLAY(Display_addr,20,2,0,font_CGRAM)
         startup()
       if ENABLE_POWERSW==True:
         PowerSW=ButtonEncoder(1, 'UP', Pin_POWERSW)
