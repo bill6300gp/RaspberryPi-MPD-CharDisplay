@@ -26,6 +26,7 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
    Open 'show.py' and go to Line-40
 
       `Display_addr  =0x27`
+      </br>
       `Display_cols  =16`
 
 ### For Volumio2
