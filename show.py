@@ -31,7 +31,20 @@ ENABLE_ENCODER=False
 
 Pin_POWERSW   =4
 
+##displayer setting
+# 16x02 : Display_cols=16, Display_rows=2
+# 20x02 : Display_cols=20, Display_rows=2
+# PCF8574T LCD  : Display_type=0
+# PCF8574T OLED : Display_type=1
+# I2C OLED      : Display_type=2
 Display_addr  =0x27
+Display_cols  =16
+Display_rows  =2
+Display_type  =0
+Message1w=Display_cols-7+(Display_cols==16)*2
+Message3w=Display_cols-13+(Display_cols==16)*2
+Message4w=Display_cols-Message3w-2
+##
 Display_stat  =0
 Display_title =0
 Display_update=0x00
@@ -176,24 +189,22 @@ def getAirPlayState():
 
   try:
     _tmp=subprocess.check_output(["sudo", "netstat", "-npt"])
+    if _tmp.find("shairport")>=0:
+      Player_stat=7
+      _stat=_tmp.split('\n')
+      for i in range(2,len(_stat),1):
+        if _stat[i].find("shairport")>=0:
+          if _stat[i].split()[5]=="ESTABLISHED":
+            _ip=Audio_airplayip
+            Audio_airplayip=_stat[i].split()[4].split(':')[0]
+          if _ip!=Audio_airplayip:
+            Display_update=Display_update|0x80
+          return 1
+    else:
+      return 0
   except:
-    _tmp=None
     Player_error|=0x04
     return 0
-
-  if _tmp.find("shairport")>=0:
-    Player_stat=7
-    _stat=_tmp.split('\n')
-    for i in range(2,len(_stat),1):
-      if _stat[i].find("shairport")>=0:
-        if _stat[i].split()[5]=="ESTABLISHED":
-          _ip=Audio_airplayip
-          Audio_airplayip=_stat[i].split()[4].split(':')[0]
-        if _ip!=Audio_airplayip:
-          Display_update=Display_update|0x80
-        return 1
-  return 0
-  #
 
 def getMPDState():
   global Display_update
@@ -311,7 +322,7 @@ def getState():
     elif Player_stat==3:
       if old_stat!=4:
         DISP.sendDebugInfo('Player status: playing YouTube Stream',1)
-#      print "Playing | YouTubr"
+#      print "Playing | YouTube"
     elif Player_stat==4:
         DISP.sendDebugInfo('Player status: paused YouTube Stream',1)
 #      print "Paused | YouTube"
@@ -413,89 +424,143 @@ def updateDisplay():
     return 0
   else:
     if Display_update&0x01==0x01 and Player_name is not None:
-      if len(Player_name)<=13:
-        DISP.sendString('{:{space}{align}{width}s}'.format(Player_name,space=' ',align='^',width=13),0,0)
+      if len(Player_name)<=Message1w:
+        DISP.sendString('{:{space}{align}{width}s}'.format(Player_name,space=' ',align='^',width=Message1w),0,0)
       else:
-        DISP.sendString('{:{space}{align}{width}s}'.format(Player_name[0:13],space=' ',align='<',width=13),0,0)
+        DISP.sendString('{:{space}{align}{width}s}'.format(Player_name[0:Message1w],space=' ',align='<',width=Message1w),0,0)
       Display_shift1=0
       Display_title=0
     elif Display_update&0x02==0x02:
       if Player_stat==0:
-        if len(Player_ip)<=11:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip,space=' ',align='^',width=11),9,1)
+        if len(Player_ip)<=Message4w:
+          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip,space=' ',align='^',width=Message4w),Message3w+2,1)
         else:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:11],space=' ',align='<',width=11),9,1)
+          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:Message4w],space=' ',align='<',width=Message4w),Message3w+2,1)
         Display_shift2=0
       else:
-        if len(Player_ip)<=13:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip,space=' ',align='^',width=13),0,0)
+        if len(Player_ip)<=Message1w:
+          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip,space=' ',align='^',width=Message1w),0,0)
         else:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:13],space=' ',align='<',width=13),0,0)
+          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:Message1w],space=' ',align='<',width=Message1w),0,0)
         Display_shift1=0
         Display_title=1
     if Display_update&0x04==0x04:
-      DISP.printCGRam(FONT_MUSIC1,13,0)
+      DISP.printCGRam(FONT_MUSIC1,Message1w,0)
       if Player_stat>=1 and Player_stat<=4:
         if Player_stat==1 or Player_stat==2:
-          DISP.sendString("Playlist",0,1)
+          if Display_cols==16:
+            DISP.sendString("List  ",0,1)
+          else:
+            DISP.sendString("Playlist",0,1)
         elif Player_stat==3 or Player_stat==4:
-          DISP.sendString("YouTube ",0,1)
+          if Display_cols==16:
+            DISP.sendString("YTube ",0,1)
+          else:
+            DISP.sendString("YouTube ",0,1)
 
         if Player_stat%2==1:
-          DISP.printCGRam(FONT_PLAY,8,1)
+          DISP.printCGRam(FONT_PLAY,Message3w+1,1)
         else:
-          DISP.printCGRam(FONT_PAUSE,8,1)
+          DISP.printCGRam(FONT_PAUSE,Message3w+1,1)
 
         if Audio_length[0]<10:
-          DISP.sendString(" {:d}:{:02d}/{:d}:{:02d} ".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]))
+          if Display_cols==16:
+            DISP.sendString("{:d}:{:02d}/{:d}:{:02d}".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]),Message3w+2,1)
+          else:
+            DISP.sendString(" {:d}:{:02d}/{:d}:{:02d} ".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]),Message3w+2,1)
         elif Audio_length[0]<100:
-          DISP.sendString("{:02d}:{:02d}/{:02d}:{:02d}".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]))
+          if Display_cols==16:
+            DISP.sendString("  {:2d}:{:02d}  ".format(Audio_time[0],Audio_time[1]),Message3w+2,1)
+          else:
+            DISP.sendString("{:2d}:{:02d}/{:2d}:{:02d}".format(Audio_time[0],Audio_time[1],Audio_length[0],Audio_length[1]),Message3w+2,1)
       elif Player_stat==5 or Player_stat==6:
-        DISP.sendString("WebRadio",0,1)
+        if Display_cols==16:
+          DISP.sendString("Radio ",0,1)
+        else:
+          DISP.sendString("WebRadio ",0,1)
         if Player_stat%2==1:
-          DISP.printCGRam(FONT_PLAY,8,1)
+          DISP.printCGRam(FONT_PLAY,Message3w+1,1)
         else:
-          DISP.printCGRam(FONT_PAUSE,8,1)
-        if len(Audio_radioname)<=11:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname,space=' ',align='^',width=11),9,1)
+          DISP.printCGRam(FONT_PAUSE,Message3w+1,1)
+        if len(Audio_radioname)<=Message4w:
+          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname,space=' ',align='^',width=Message4w),Message3w+2,1)
         else:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:11],space=' ',align='<',width=11),9,1)
+          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:Message4w],space=' ',align='<',width=Message4w),Message3w+2,1)
         Display_shift2=0
       elif Player_stat==7:
-        DISP.sendString("AirPlay",0,1)
-        DISP.printCGRam(FONT_AIRPLAY,7,1)
-        DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[0:10],space=' ',align='<',width=10),10,1)
+        if Display_cols==16:
+          DISP.sendString("Apple",0,1)
+        else:
+          DISP.sendString("AirPlay",0,1)
+        DISP.printCGRam(FONT_AIRPLAY,Message3w,1)
+        DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[0:Message4w-1],space=' ',align='<',width=Message4w-1),Message3w+3,1)
         Display_shift2=0
       else:
-        DISP.sendString("Standby ",0,1)
-        DISP.printCGRam(FONT_STOP)
-        if len(Player_ip)<=11:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip,space=' ',align='^',width=11),9,1)
+        if Display_cols==16:
+          DISP.sendString("Stoped",0,1)
         else:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:11],space=' ',align='<',width=11),9,1)
+          DISP.sendString("Standby ",0,1)
+        DISP.printCGRam(FONT_STOP,Message3w+1,1)
+        if len(Player_ip)<=Message4w:
+          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip,space=' ',align='^',width=Message4w),Message3w+2,1)
+        else:
+          DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:Message4w],space=' ',align='<',width=Message4w),Message3w+2,1)
         Display_shift2=0
       if Audio_sample!=0:
-        DISP.sendString("{:5.1f}K".format(float(Audio_sample)/1000),14,0)
+        if Display_cols==16:
+          if(Audio_sample<100000):
+            DISP.sendString("{:2d}K{:1d}".format(Audio_sample/1000,(Audio_sample%1000)/100),Message1w+1,0)
+          else:
+            DISP.sendString("{:3d}K".format(Audio_sample/1000),Message1w+1,0)
+        else:
+          DISP.sendString("{:5.1f}K".format(float(Audio_sample)/1000),Message1w+1,0)
       else:
-        DISP.sendString("Closed",14,0)
+        if Display_cols==16:
+          DISP.sendString("None",Message1w+1,0)
+        else:
+          DISP.sendString("Closed",Message1w+1,0)
     else:
       if Display_update&0x08==0x08:
         if Audio_sample!=0:
-          DISP.sendString("{:5.1f}K".format(float(Audio_sample)/1000),14,0)
+          if Display_cols==16:
+            if(Audio_sample<100000):
+              DISP.sendString("{:2d}K{:1d}".format(Audio_sample/1000,(Audio_sample%1000)/100),Message1w+1,0)
+            else:
+              DISP.sendString("{:3d}K".format(Audio_sample/1000),Message1w+1,0)
+          else:
+            DISP.sendString("{:5.1f}K".format(float(Audio_sample)/1000),Message1w+1,0)
         else:
-          DISP.sendString("Closed",14,0)
+          if Display_cols==16:
+            DISP.sendString("None",Message1w+1,0)
+          else:
+            DISP.sendString("Closed",Message1w+1,0)
       if Display_update&0x10==0x10 and (Player_stat>=1 and Player_stat<=4):
-        DISP.sendString("{:2d}:{:02d}".format(Audio_time[0],Audio_time[1]),9,1)
+        if Audio_length[0]<10:
+          if Display_cols==16:
+            DISP.sendString("{:1d}:{:02d}".format(Audio_time[0],Audio_time[1]),Message3w+2,1)
+          else:
+            DISP.sendString(" {:1d}:{:02d}".format(Audio_time[0],Audio_time[1]),Message3w+2,1)
+        elif Audio_length[0]<100:
+          if Display_cols==16:
+            DISP.sendString("  {:2d}:{:02d}  ".format(Audio_time[0],Audio_time[1]),Message3w+2,1)
+          else:
+            DISP.sendString("{:2d}:{:02d}".format(Audio_time[0],Audio_time[1]),Message3w+2,1)
       if Display_update&0x20==0x20 and (Player_stat>=1 and Player_stat<=4):
-        DISP.sendString("{:d}:{:02d}".format(Audio_length[0],Audio_length[1]),15,1)
+        if Audio_length[0]<10:
+          if Display_cols==16:
+            DISP.sendString("{:d}:{:02d} ".format(Audio_length[0],Audio_length[1]),Message3w+7,1)
+          else:
+            DISP.sendString("{:d}:{:02d} ".format(Audio_length[0],Audio_length[1]),Message3w+8,1)
+        elif Audio_length[0]<100 and Display_cols==20:
+          DISP.sendString("{:2d}:{:02d}".format(Audio_length[0],Audio_length[1]),Message3w+8,1)
       if Display_update&0x40==0x40 and (Player_stat==5 or Player_stat==6):
-        if len(Audio_radioname)<=11:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname,space=' ',align='^',width=11),9,1)
+        if len(Audio_radioname)<=Message4w:
+          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname,space=' ',align='^',width=Message4w),Message3w+2,1)
         else:
-          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:11],space=' ',align='<',width=11),9,1)
+          DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:Message4w],space=' ',align='<',width=Message4w),Message3w+2,1)
         Display_shift2=0
       if Display_update&0x80==0x80 and Player_stat==7:
-        DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[0:10],space=' ',align='<',width=10),10,1)
+        DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[0:Message4w-1],space=' ',align='<',width=Message4w-1),Message3w+2,1)
         Display_shift2=0
 
     Display_update=0x00
@@ -505,53 +570,53 @@ def shiftDisplay():
   global Display_shift1
   global Display_shift2
 
-  if Display_title==0 and len(Player_name)>13:
-    if Display_shift1>=len(Player_name)+11:
+  if Display_title==0 and len(Player_name)>Message1w:
+    if Display_shift1>=(len(Player_name)+Message1w-2):
       Display_shift1=0
     else:
       Display_shift1+=1
     if Display_shift1>=len(Player_name):
-      DISP.sendString('{:{space}{align}{width}s}'.format(Player_name[0:Display_shift1-len(Player_name)+1],space=' ',align='>',width=13),0,0)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Player_name[0:Display_shift1-len(Player_name)+1],space=' ',align='>',width=Message1w),0,0)
     else:
-      DISP.sendString('{:{space}{align}{width}s}'.format(Player_name[Display_shift1+0:Display_shift1+13],space=' ',align='<',width=13),0,0)
-  elif Display_title==1 and len(Player_ip)>13:
-    if Display_shift1>=len(Player_ip)+11:
+      DISP.sendString('{:{space}{align}{width}s}'.format(Player_name[Display_shift1+0:Display_shift1+Message1w],space=' ',align='<',width=Message1w),0,0)
+  elif Display_title==1 and len(Player_ip)>Message1w:
+    if Display_shift1>=(len(Player_ip)+Message1w-2):
       Display_shift1=0
     else:
       Display_shift1+=1
     if Display_shift1>=len(Player_ip):
-      DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:Display_shift1-len(Player_ip)+1],space=' ',align='>',width=13),0,0)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:Display_shift1-len(Player_ip)+1],space=' ',align='>',width=Message1w),0,0)
     else:
-      DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[Display_shift1+0:Display_shift1+13],space=' ',align='<',width=13),0,0)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[Display_shift1+0:Display_shift1+Message1w],space=' ',align='<',width=Message1w),0,0)
 
 
   if Player_stat==5 or Player_stat==6:
-    if Display_shift2>=len(Audio_radioname)+9:
+    if Display_shift2>=(len(Audio_radioname)+Message4w-2):
       Display_shift2=0
     else:
       Display_shift2+=1
     if Display_shift2>=len(Audio_radioname):
-      DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:Display_shift2-len(Audio_radioname)+1],space=' ',align='>',width=11),9,1)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[0:Display_shift2-len(Audio_radioname)+1],space=' ',align='>',width=Message4w),Message3w+2,1)
     else:
-      DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[Display_shift2+0:Display_shift2+11],space=' ',align='<',width=11),9,1)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Audio_radioname[Display_shift2+0:Display_shift2+Message4w],space=' ',align='<',width=Message4w),Message3w+2,1)
   elif Player_stat==7:
-    if Display_shift2>=len(Audio_airplayip)+8:
+    if Display_shift2>=(len(Audio_airplayip)+Message4w-3):
       Display_shift2=0
     else:
       Display_shift2+=1
     if Display_shift2>=len(Audio_airplayip):
-      DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[0:Display_shift2-len(Audio_airplayip)+1],space=' ',align='>',width=10),10,1)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[0:Display_shift2-len(Audio_airplayip)+1],space=' ',align='>',width=Message4w-1),Message3w+3,1)
     else:
-      DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[Display_shift2+0:Display_shift2+10],space=' ',align='<',width=10),10,1)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Audio_airplayip[Display_shift2+0:Display_shift2+Message4w-1],space=' ',align='<',width=Message4w-1),Message3w+3,1)
   elif Player_stat==0:
-    if Display_shift2>=len(Player_ip)+9:
+    if Display_shift2>=(len(Player_ip)+Message4w-2):
       Display_shift2=0
     else:
       Display_shift2+=1
     if Display_shift2>=len(Player_ip):
-      DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:Display_shift2-len(Player_ip)+1],space=' ',align='>',width=11),9,1)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[0:Display_shift2-len(Player_ip)+1],space=' ',align='>',width=Message4w),Message3w+2,1)
     else:
-      DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[Display_shift2+0:Display_shift2+11],space=' ',align='<',width=11),9,1)
+      DISP.sendString('{:{space}{align}{width}s}'.format(Player_ip[Display_shift2+0:Display_shift2+Message4w],space=' ',align='<',width=Message4w),Message3w+2,1)
 
 def orderDisplay():
   global Order_update
@@ -729,9 +794,9 @@ if __name__ == '__main__':
 #DISP=DISPLAY(0x3C,20,4,2,font_CGRAM)
     if checkI2Cdevice(Display_addr)==1:
       if subprocess.check_output(["ls", "/tmp/"]).count("display.log")>0:
-        DISP=DISPLAY(Display_addr,20,2,0,font_CGRAM)
+        DISP=DISPLAY(Display_addr,Display_cols,Display_rows,Display_type,font_CGRAM)
       else:
-        DISP=DISPLAY(Display_addr,20,2,0,font_CGRAM)
+        DISP=DISPLAY(Display_addr,Display_cols,Display_rows,Display_type,font_CGRAM)
         startup()
       if ENABLE_POWERSW==True:
         PowerSW=ButtonEncoder(1, 'UP', Pin_POWERSW)
