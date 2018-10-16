@@ -11,7 +11,7 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
    **Raspberry pi:** B+, 2B, or 3B
    </br>
-   **Display units:** Character LCD *(via PCF8574)* or OLED *(with SSD1311 controller)* module of 20x02 or 20x04 via I2C protocol
+   **Display units:** Character LCD *(via PCF8574)* or OLED *(with SSD1311 controller)* module of 20x02 or 16x02 via I2C protocol
    </br>
    **Operating system:** Volumio 2, RuneAudio
    </br>
@@ -21,11 +21,12 @@ A Python project of the Raspberry Pi to control character LCD or OLED(SSD1311 co
 
 1. Install essential Python2 libraries(see Appendix-1).
 
-2. Check I2C Character module LCD address
+2. Check I2C Character module LCD address and number of cols
 
-   Open 'show.py' and go to Line-34
+   Open 'show.py' and go to Line-40
 
       `Display_addr  =0x27`
+      `Display_cols  =16`
 
 ### For Volumio2
 
